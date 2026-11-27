@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>טיול על מטריצה – מפגש 8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #F3F5F8;
+    --surface: #FFFFFF;
+    --ink: #1B2333;
+    --muted: #5B6573;
+    --line: #D0D7E2;
+    --code-bg: #1E2533;
+    --code-ink: #E6EDF3;
+    --code-dim: #8B949E;
+    --code-active: #2E3A52;
+    --kw: #FF8FB8;
+    --fn: #82AAFF;
+    --num: #F7A26B;
+    --cell: #FFFFFF;
+    --cell-off: #E9EDF3;
+    --cell-ink: #1B2333;
+    --target: #E3EDF7;
+    --visited: #3776AB;
+    --visited-ink: #FFFFFF;
+    --current: #FFD43B;
+    --current-ink: #1B2333;
+    --band: rgba(55, 118, 171, 0.10);
+    --idx: #3776AB;
+    --total: #1F9D55;
+    --btn: #1B2333;
+    --btn-ink: #FFFFFF;
+    --chip: #FFFFFF;
+    --chip-on: #1B2333;
+    --chip-on-ink: #FFD43B;
+    --sans: "Heebo", Arial, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", "Courier New", Consolas, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #141A26;
+      --surface: #1B2333;
+      --ink: #E6EDF3;
+      --muted: #AFC4DA;
+      --line: #3A4A66;
+      --code-bg: #0E131B;
+      --code-active: #243049;
+      --cell: #243049;
+      --cell-off: #1A2130;
+      --cell-ink: #E6EDF3;
+      --target: #2C3B57;
+      --visited: #3776AB;
+      --band: rgba(130, 170, 255, 0.12);
+      --idx: #82AAFF;
+      --total: #5FD08E;
+      --btn: #FFD43B;
+      --btn-ink: #1B2333;
+      --chip: #243049;
+      --chip-on: #FFD43B;
+      --chip-on-ink: #1B2333;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #141A26; --surface: #1B2333; --ink: #E6EDF3; --muted: #AFC4DA; --line: #3A4A66;
+    --code-bg: #0E131B; --code-active: #243049; --cell: #243049; --cell-off: #1A2130; --cell-ink: #E6EDF3;
+    --target: #2C3B57; --band: rgba(130, 170, 255, 0.12); --idx: #82AAFF; --total: #5FD08E;
+    --btn: #FFD43B; --btn-ink: #1B2333; --chip: #243049; --chip-on: #FFD43B; --chip-on-ink: #1B2333;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 20px;
+    line-height: 1.45;
+  }
+  .app {
+    min-height: 100%;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 18px;
+    padding: 22px 28px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 38px; font-weight: 800; letter-spacing: -0.5px; }
+  header p { margin: 0; color: var(--muted); font-size: 20px; }
+
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font: 500 19px var(--sans);
+    border: 1.5px solid var(--line);
+    background: var(--chip);
+    color: var(--ink);
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on); font-weight: 700; }
+  .chip:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--current); outline-offset: 2px; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; min-height: 0; }
+
+  /* ---------- matrix stage ---------- */
+  .stage {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    overflow: auto;
+  }
+  .matrix { direction: ltr; display: grid; gap: 0; position: relative; }
+  .idx { font: 700 18px var(--mono); color: var(--idx); display: flex; align-items: center; justify-content: center; }
+  .idx.on { color: var(--ink); background: var(--current); border-radius: 8px; }
+  .corner { white-space: nowrap; font: 500 14px var(--mono); color: var(--muted); display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 6px 4px 0; }
+  .cell {
+    width: var(--cs); height: var(--cs);
+    margin: 3px;
+    border-radius: 10px;
+    background: var(--cell);
+    border: 2px solid var(--line);
+    color: var(--cell-ink);
+    font: 700 calc(var(--cs) * 0.4) var(--mono);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    transition: background-color .18s, color .18s, transform .18s, border-color .18s;
+  }
+  .cell.none { background: transparent; border: 2px dashed var(--line); opacity: .45; }
+  .cell.target { background: var(--target); border-color: var(--idx); }
+  .cell.dim { opacity: .35; }
+  .cell.band { box-shadow: inset 0 0 0 999px var(--band); }
+  .cell.visited { background: var(--visited); color: var(--visited-ink); border-color: var(--visited); opacity: 1; }
+  .cell.current { background: var(--current); color: var(--current-ink); border-color: var(--current); transform: scale(1.08); z-index: 2; opacity: 1; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+  .cell .ord { position: absolute; top: 3px; left: 6px; font: 700 13px var(--mono); opacity: .8; }
+
+  /* ---------- side panel ---------- */
+  .side { display: grid; grid-template-rows: auto auto 1fr; gap: 16px; min-height: 0; }
+  .code {
+    direction: ltr; text-align: left;
+    background: var(--code-bg); color: var(--code-ink);
+    border-radius: 16px; padding: 16px 0;
+    font: 500 21px/1.65 var(--mono);
+    overflow-x: auto;
+  }
+  .code .ln { padding: 0 20px; white-space: pre; display: flex; justify-content: space-between; gap: 24px; border-inline-start: 5px solid transparent; }
+  .code .ln.active { background: var(--code-active); border-inline-start-color: var(--current); }
+  .code .ann { color: var(--current); font-weight: 700; }
+  .kw { color: var(--kw); } .fn { color: var(--fn); } .nm { color: var(--num); } .cm { color: var(--code-dim); }
+
+  .vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+  .var { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 14px; text-align: center; }
+  .var b { display: block; font: 700 34px var(--mono); direction: ltr; }
+  .var span { font-size: 17px; color: var(--muted); }
+  .var.total b { color: var(--total); }
+  .explain {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 18px; font-size: 22px; font-weight: 500; align-self: start;
+  }
+  .explain code { display: inline-block; font-family: var(--mono); font-weight: 700; direction: ltr; unicode-bidi: isolate; color: var(--idx); }
+
+  /* ---------- controls ---------- */
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+  .group { display: flex; align-items: center; gap: 8px; }
+  .group label { color: var(--muted); font-size: 18px; }
+  button {
+    font: 700 19px var(--sans);
+    background: var(--btn); color: var(--btn-ink);
+    border: 0; border-radius: 12px; padding: 10px 18px; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  button:disabled { opacity: .4; cursor: default; }
+  .num-step { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .num-step button { border-radius: 0; background: transparent; color: var(--ink); padding: 6px 14px; font-size: 22px; }
+  .num-step output { min-width: 34px; text-align: center; font: 700 20px var(--mono); }
+  input[type=range] { width: 150px; accent-color: var(--idx); }
+  .progress { color: var(--muted); font: 500 18px var(--mono); direction: ltr; unicode-bidi: isolate; }
+  .hint { color: var(--muted); font-size: 16px; margin-inline-start: auto; }
+
+  @media (max-width: 980px) {
+    .main { grid-template-columns: 1fr; }
+    h1 { font-size: 30px; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .cell { transition: none; } .cell.current { transform: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>טיול על מטריצה</h1>
+    <p>בוחרים צורת מעבר, ומתקדמים צעד אחרי צעד</p>
+  </header>
+
+  <nav class="modes" id="modes" aria-label="צורת המעבר"></nav>
+
+  <div class="main">
+    <section class="stage" aria-label="המטריצה">
+      <div class="matrix" id="matrix"></div>
+    </section>
+    <section class="side">
+      <div class="code" id="code" aria-label="הקוד"></div>
+      <div class="vars" id="vars"></div>
+      <div class="explain" id="explain" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <div class="group">
+      <button id="prev" class="ghost" title="צעד אחורה (חץ שמאלה)">צעד אחורה</button>
+      <button id="play" title="ניגון / עצירה (P)">ניגון</button>
+      <button id="next" title="צעד קדימה (חץ ימינה / רווח)">צעד קדימה</button>
+      <button id="reset" class="ghost" title="מההתחלה (Home)">מההתחלה</button>
+      <span class="progress" id="progress"></span>
+    </div>
+    <div class="group">
+      <label for="speed">מהירות</label>
+      <input type="range" id="speed" min="1" max="10" value="5">
+    </div>
+    <div class="group" id="rowsGroup">
+      <label id="rowsLabel">שורות</label>
+      <div class="num-step"><button data-t="rows" data-d="-1" aria-label="פחות">−</button><output id="rowsOut"></output><button data-t="rows" data-d="1" aria-label="יותר">+</button></div>
+    </div>
+    <div class="group" id="colsGroup">
+      <label id="colsLabel">עמודות</label>
+      <div class="num-step"><button data-t="cols" data-d="-1" aria-label="פחות">−</button><output id="colsOut"></output><button data-t="cols" data-d="1" aria-label="יותר">+</button></div>
+    </div>
+    <div class="group" id="depthGroup">
+      <label>עומק המסגרת</label>
+      <div class="num-step"><button data-t="depth" data-d="-1" aria-label="פחות">−</button><output id="depthOut"></output><button data-t="depth" data-d="1" aria-label="יותר">+</button></div>
+    </div>
+    <button id="shuffle" class="ghost">מספרים חדשים</button>
+    <span class="hint">מקשים: חצים, רווח, P</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------
+  // Traversal modes – code lines + step generator
+  // step: { line, cell:[i,j]|null, v:{name:value}, msg }
+  // ------------------------------------------------------------
+  const MODES = [
+    {
+      id: 'rows', name: 'שורה אחר שורה', shape: 'rect',
+      code: ['total = 0', 'for i in range(len(grid)):', '    for j in range(len(grid[0])):', '        total += grid[i][j]'],
+      ann: { 1: 'i', 2: 'j' },
+      gen(g) {
+        const s = [];
+        for (let i = 0; i < g.length; i++) {
+          s.push({ line: 1, v: { i }, msg: `עוברים לשורה <code>i = ${i}</code>` });
+          for (let j = 0; j < g[0].length; j++) s.push({ line: 3, cell: [i, j], v: { i, j } });
+        }
+        return s;
+      },
+    },
+    {
+      id: 'cols', name: 'עמודה אחר עמודה', shape: 'rect',
+      code: ['total = 0', 'for j in range(len(grid[0])):', '    for i in range(len(grid)):', '        total += grid[i][j]'],
+      ann: { 1: 'j', 2: 'i' },
+      gen(g) {
+        const s = [];
+        for (let j = 0; j < g[0].length; j++) {
+          s.push({ line: 1, v: { j }, msg: `עוברים לעמודה <code>j = ${j}</code>` });
+          for (let i = 0; i < g.length; i++) s.push({ line: 3, cell: [i, j], v: { i, j } });
+        }
+        return s;
+      },
+    },
+    {
+      id: 'main', name: 'אלכסון ראשי', shape: 'square',
+      code: ['total = 0', 'n = len(grid)', 'for i in range(n):', '    total += grid[i][i]'],
+      ann: { 2: 'i' },
+      gen(g) {
+        const s = [];
+        for (let i = 0; i < g.length; i++) s.push({ line: 3, cell: [i, i], v: { i, j: i } });
+        return s;
+      },
+      note: 'לולאה אחת בלבד – השורה והעמודה תמיד שוות',
+    },
+    {
+      id: 'second', name: 'אלכסון משני', shape: 'square',
+      code: ['total = 0', 'n = len(grid)', 'for i in range(n):', '    total += grid[i][n - 1 - i]'],
+      ann: { 2: 'i' },
+      gen(g) {
+        const n = g.length, s = [];
+        for (let i = 0; i < n; i++) s.push({ line: 3, cell: [i, n - 1 - i], v: { i, j: n - 1 - i } });
+        return s;
+      },
+      note: 'העמודה היא n - 1 - i: כשהשורה עולה, העמודה יורדת',
+    },
+    {
+      id: 'above', name: 'מעל האלכסון', shape: 'square',
+      code: ['total = 0', 'n = len(grid)', 'for i in range(n - 1):', '    for j in range(i + 1, n):', '        total += grid[i][j]'],
+      ann: { 2: 'i', 3: 'j' },
+      gen(g) {
+        const n = g.length, s = [];
+        for (let i = 0; i < n - 1; i++) {
+          s.push({ line: 2, v: { i }, msg: `שורה <code>i = ${i}</code> – מתחילים מהעמודה <code>${i + 1}</code>` });
+          for (let j = i + 1; j < n; j++) s.push({ line: 4, cell: [i, j], v: { i, j } });
+        }
+        return s;
+      },
+    },
+    {
+      id: 'below', name: 'מתחת לאלכסון', shape: 'square',
+      code: ['total = 0', 'n = len(grid)', 'for i in range(1, n):', '    for j in range(i):', '        total += grid[i][j]'],
+      ann: { 2: 'i', 3: 'j' },
+      gen(g) {
+        const n = g.length, s = [];
+        for (let i = 1; i < n; i++) {
+          s.push({ line: 2, v: { i }, msg: `שורה <code>i = ${i}</code> – עוברים על <code>${i}</code> עמודות` });
+          for (let j = 0; j < i; j++) s.push({ line: 4, cell: [i, j], v: { i, j } });
+        }
+        return s;
+      },
+    },
+    {
+      id: 'jagged', name: 'שורות באורך שונה', shape: 'jagged',
+      code: ['total = 0', 'for i in range(len(grid)):', '    for j in range(len(grid[i])):', '        total += grid[i][j]'],
+      ann: { 1: 'i', 2: 'j' },
+      gen(g) {
+        const s = [];
+        for (let i = 0; i < g.length; i++) {
+          s.push({ line: 1, v: { i }, msg: `שורה <code>i = ${i}</code> – באורך <code>${g[i].length}</code>` });
+          for (let j = 0; j < g[i].length; j++) s.push({ line: 3, cell: [i, j], v: { i, j } });
+        }
+        return s;
+      },
+    },
+    {
+      id: 'frame', name: 'מסגרת', shape: 'rect', depth: true, annActive: true,
+      code: [
+        'top, bottom = d - 1, len(grid) - d',
+        'left, right = d - 1, len(grid[0]) - d',
+        'for j in range(left, right + 1):',
+        '    total += grid[top][j]',
+        'for i in range(top + 1, bottom + 1):',
+        '    total += grid[i][right]',
+        'for j in range(right - 1, left - 1, -1):',
+        '    total += grid[bottom][j]',
+        'for i in range(bottom - 1, top, -1):',
+        '    total += grid[i][left]',
+      ],
+      ann: { 2: 'j', 4: 'i', 6: 'j', 8: 'i' },
+      gen(g, d) {
+        const top = d - 1, bottom = g.length - d, left = d - 1, right = g[0].length - d, s = [];
+        s.push({ line: 0, v: {}, msg: `השורה העליונה <code>${top}</code>, התחתונה <code>${bottom}</code>` });
+        s.push({ line: 1, v: {}, msg: `העמודה השמאלית <code>${left}</code>, הימנית <code>${right}</code>` });
+        for (let j = left; j <= right; j++) s.push({ line: 3, cell: [top, j], v: { i: top, j }, side: 'השורה העליונה' });
+        for (let i = top + 1; i <= bottom; i++) s.push({ line: 5, cell: [i, right], v: { i, j: right }, side: 'העמודה הימנית' });
+        for (let j = right - 1; j >= left; j--) s.push({ line: 7, cell: [bottom, j], v: { i: bottom, j }, side: 'השורה התחתונה' });
+        for (let i = bottom - 1; i > top; i--) s.push({ line: 9, cell: [i, left], v: { i, j: left }, side: 'העמודה השמאלית' });
+        return s;
+      },
+    },
+    {
+      id: 'pos', name: 'מיקום ברצף', shape: 'rect',
+      code: ['total = 0', 'cols = len(grid[0])', 'for pos in range(len(grid) * cols):', '    i = pos // cols', '    j = pos % cols', '    total += grid[i][j]'],
+      ann: { 2: 'pos', 3: 'i', 4: 'j' },
+      gen(g) {
+        const cols = g[0].length, s = [];
+        for (let pos = 0; pos < g.length * cols; pos++) {
+          const i = Math.floor(pos / cols), j = pos % cols;
+          s.push({ line: 5, cell: [i, j], v: { pos, i, j }, msg: `<code>pos = ${pos}</code> ← שורה <code>${pos} // ${cols} = ${i}</code>, עמודה <code>${pos} % ${cols} = ${j}</code>` });
+        }
+        return s;
+      },
+      note: 'לולאה אחת על כל המטריצה – כמו בתרגיל 13',
+    },
+  ];
+
+  // ------------------------------------------------------------
+  // State
+  // ------------------------------------------------------------
+  const st = { mode: MODES[0], rows: 4, cols: 5, depth: 1, grid: [], steps: [], k: 0, timer: null };
+  const $ = (id) => document.getElementById(id);
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+  function makeGrid() {
+    const m = st.mode;
+    if (m.shape === 'square') st.cols = st.rows;
+    if (m.shape === 'jagged') {
+      st.grid = Array.from({ length: st.rows }, () => Array.from({ length: rnd(1, st.cols) }, () => rnd(1, 9)));
+    } else {
+      st.grid = Array.from({ length: st.rows }, () => Array.from({ length: st.cols }, () => rnd(1, 9)));
+    }
+  }
+
+  function maxDepth() { return Math.max(1, Math.floor(Math.min(st.rows, st.cols) / 2)); }
+
+  function build(newNumbers) {
+    stop();
+    if (st.mode.shape === 'square') st.cols = st.rows;
+    if (st.mode.depth) st.depth = Math.min(Math.max(1, st.depth), maxDepth());
+    if (newNumbers) makeGrid();
+    // keep grid in sync with size
+    if (st.grid.length !== st.rows || (st.mode.shape !== 'jagged' && st.grid.some(r => r.length !== st.cols)) ||
+        (st.mode.shape === 'jagged' && st.grid.some(r => r.length > st.cols))) makeGrid();
+    if (st.mode.shape !== 'jagged' && st.grid.some(r => r.length !== st.grid[0].length)) makeGrid();
+    st.steps = [{ line: 0, v: {}, start: true }].concat(st.mode.gen(st.grid, st.depth));
+    // running totals and visiting order
+    let total = 0, ord = 0;
+    st.steps.forEach((s) => {
+      if (s.cell) { total += st.grid[s.cell[0]][s.cell[1]]; ord += 1; s.ord = ord; }
+      s.total = total; s.count = ord;
+    });
+    st.k = 0;
+    renderStatic();
+    render();
+  }
+
+  // ------------------------------------------------------------
+  // Rendering
+  // ------------------------------------------------------------
+  function hl(line) {
+    return line
+      .replace(/(\b\d+\b)/g, '<span class="nm">$1</span>')
+      .replace(/\b(for|in)\b/g, '<span class="kw">$1</span>')
+      .replace(/\b(range|len)\b/g, '<span class="fn">$1</span>');
+  }
+
+  function renderStatic() {
+    const m = st.mode;
+    // modes
+    $('modes').innerHTML = '';
+    MODES.forEach((md) => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = md.name;
+      b.setAttribute('aria-pressed', md === m ? 'true' : 'false');
+      b.onclick = () => { st.mode = md; build(true); };
+      $('modes').appendChild(b);
+    });
+    // controls visibility
+    $('colsGroup').style.display = m.shape === 'square' ? 'none' : '';
+    $('rowsLabel').textContent = m.shape === 'square' ? 'גודל n' : (m.shape === 'jagged' ? 'שורות' : 'שורות');
+    $('depthGroup').style.display = m.depth ? '' : 'none';
+    $('colsLabel').textContent = m.shape === 'jagged' ? 'אורך שורה מרבי' : 'עמודות';
+    $('rowsOut').textContent = st.rows;
+    $('colsOut').textContent = st.cols;
+    $('depthOut').textContent = st.depth;
+    // matrix skeleton
+    const g = st.grid, R = g.length, C = Math.max(...g.map(r => r.length), st.mode.shape === 'jagged' ? st.cols : 0);
+    const cs = Math.max(48, Math.min(92, Math.floor(560 / Math.max(R, C))));
+    const mx = $('matrix');
+    mx.style.setProperty('--cs', cs + 'px');
+    mx.style.gridTemplateColumns = `56px repeat(${C}, ${cs + 6}px)`;
+    mx.style.gridTemplateRows = `34px repeat(${R}, ${cs + 6}px)`;
+    let h = '<div class="corner">i \\ j</div>';
+    for (let j = 0; j < C; j++) h += `<div class="idx" data-c="${j}">${j}</div>`;
+    const target = new Set(st.steps.filter(s => s.cell).map(s => s.cell.join(',')));
+    for (let i = 0; i < R; i++) {
+      h += `<div class="idx" data-r="${i}">${i}</div>`;
+      for (let j = 0; j < C; j++) {
+        if (j >= g[i].length) { h += '<div class="cell none"></div>'; continue; }
+        const inT = target.has(i + ',' + j);
+        h += `<div class="cell ${inT ? 'target' : 'dim'}" data-i="${i}" data-j="${j}">${g[i][j]}</div>`;
+      }
+    }
+    mx.innerHTML = h;
+    // code
+    $('code').innerHTML = m.code.map((ln, n) => `<div class="ln" data-n="${n}"><span>${hl(ln)}</span><span class="ann"></span></div>`).join('');
+  }
+
+  function render() {
+    const s = st.steps[st.k];
+    const visited = new Map();
+    for (let k = 0; k <= st.k; k++) { const t = st.steps[k]; if (t.cell) visited.set(t.cell.join(','), t.ord); }
+    const cur = s.cell ? s.cell.join(',') : null;
+    const ci = s.v.i, cj = s.v.j;
+    document.querySelectorAll('#matrix .cell[data-i]').forEach((el) => {
+      const key = el.dataset.i + ',' + el.dataset.j;
+      el.classList.toggle('visited', visited.has(key) && key !== cur);
+      el.classList.toggle('current', key === cur);
+      const band = (ci !== undefined && +el.dataset.i === ci) || (cj !== undefined && +el.dataset.j === cj);
+      el.classList.toggle('band', band);
+      let o = el.querySelector('.ord');
+      if (visited.has(key)) {
+        if (!o) { o = document.createElement('span'); o.className = 'ord'; el.appendChild(o); }
+        o.textContent = visited.get(key);
+      } else if (o) o.remove();
+    });
+    document.querySelectorAll('#matrix .idx').forEach((el) => {
+      const on = (el.dataset.r !== undefined && +el.dataset.r === ci) || (el.dataset.c !== undefined && +el.dataset.c === cj);
+      el.classList.toggle('on', on);
+    });
+    // code lines + loop variable annotations
+    const m = st.mode;
+    document.querySelectorAll('#code .ln').forEach((el) => {
+      const n = +el.dataset.n;
+      el.classList.toggle('active', n === s.line);
+      const a = m.ann && m.ann[n];
+      const show = a && s.v[a] !== undefined && (!m.annActive || n === s.line - 1);
+      el.querySelector('.ann').textContent = show ? `# ${a} = ${s.v[a]}` : '';
+    });
+    // variables
+    const vars = [];
+    if ('pos' in s.v) vars.push(['pos', s.v.pos]);
+    vars.push(['i', s.v.i ?? '–'], ['j', s.v.j ?? '–']);
+    vars.push(['grid[i][j]', s.cell ? st.grid[s.cell[0]][s.cell[1]] : '–']);
+    $('vars').innerHTML = vars.map(([n, v]) => `<div class="var"><b>${v}</b><span dir="ltr">${n}</span></div>`).join('') +
+      `<div class="var total"><b>${s.total}</b><span dir="ltr">total</span></div>`;
+    // explanation
+    let msg;
+    if (s.start) msg = m.note ? `${m.note}. לוחצים "צעד קדימה" כדי להתחיל.` : 'התאים המסומנים הם התאים שהלולאה תעבור עליהם. לוחצים "צעד קדימה" כדי להתחיל.';
+    else if (s.msg) msg = s.msg;
+    else if (s.cell) {
+      const [i, j] = s.cell, v = st.grid[i][j];
+      msg = `${s.side ? s.side + ': ' : ''}<code>grid[${i}][${j}] = ${v}</code> ← מוסיפים לסכום, <code>total = ${s.total}</code>`;
+    }
+    if (st.k === st.steps.length - 1) msg = `סיימנו: עברנו על <code>${s.count}</code> תאים, והסכום הוא <code>${s.total}</code>`;
+    $('explain').innerHTML = msg;
+    $('progress').textContent = `${st.k} / ${st.steps.length - 1}`;
+    $('prev').disabled = st.k === 0;
+    $('next').disabled = st.k === st.steps.length - 1;
+  }
+
+  // ------------------------------------------------------------
+  // Controls
+  // ------------------------------------------------------------
+  function go(d) { const k = Math.min(Math.max(0, st.k + d), st.steps.length - 1); if (k !== st.k) { st.k = k; render(); } }
+  function delay() { return 1600 - (+$('speed').value) * 140; }
+  function stop() { if (st.timer) clearTimeout(st.timer); st.timer = null; $('play').textContent = 'ניגון'; }
+  function tick() {
+    if (st.k >= st.steps.length - 1) { stop(); return; }
+    go(1);
+    st.timer = setTimeout(tick, delay());
+  }
+  function togglePlay() {
+    if (st.timer) { stop(); return; }
+    if (st.k >= st.steps.length - 1) { st.k = 0; render(); }
+    $('play').textContent = 'עצירה';
+    st.timer = setTimeout(tick, 250);
+  }
+
+  $('next').onclick = () => { stop(); go(1); };
+  $('prev').onclick = () => { stop(); go(-1); };
+  $('reset').onclick = () => { stop(); st.k = 0; render(); };
+  $('play').onclick = togglePlay;
+  $('shuffle').onclick = () => build(true);
+  document.querySelectorAll('.num-step button').forEach((b) => {
+    b.onclick = () => {
+      const t = b.dataset.t, d = +b.dataset.d;
+      if (t === 'rows') st.rows = Math.min(7, Math.max(2, st.rows + d));
+      if (t === 'cols') st.cols = Math.min(8, Math.max(2, st.cols + d));
+      if (t === 'depth') st.depth = Math.min(maxDepth(), Math.max(1, st.depth + d));
+      build(t !== 'depth');
+    };
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); stop(); go(1); }
+    else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); stop(); go(-1); }
+    else if (e.key === 'Home') { stop(); st.k = 0; render(); }
+    else if (e.key === 'p' || e.key === 'P' || e.key === 'פ') togglePlay();
+  });
+
+  build(true);
+})();
+</script>
+</body>
+</html>
